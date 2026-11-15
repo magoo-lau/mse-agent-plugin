@@ -1,0 +1,149 @@
+server:
+  port: {{port}}
+
+spring:
+  application:
+    name: {{appName}}
+  # JDK 21 虚拟线程：默认关闭（MySQL Connector/J 的 synchronized 在 JDK21 会 pin 载体线程，
+  # 待升级 JDK24+/更换驱动后再默认开启）
+  threads:
+    virtual:
+      enabled: false
+  # 混合租户模式：master 承载全局表+平台管控表；租户数据源优先经平台端「平台管理 → 租户数据源」
+  # 界面维护（运行时动态注册，无需改配置/重启）；静态声明双轨兼容（同 key 时动态注册优先）
+  # （strict=false：租户 ds_key 未配置对应数据源时回落 master，等价共享库语义）
+  datasource:
+    dynamic:
+      primary: master
+      strict: false
+      # 懒建池：独立库租户示例库按需开通，开箱不要求其存在
+      lazy: true
+      datasource:
+        master:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MSE_MYSQL_HOST:localhost}:${MSE_MYSQL_PORT:3306}/${MSE_MYSQL_DB:mse}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useInformationSchema=true&nullCatalogMeansCurrent=true
+          username: ${MSE_MYSQL_USER:root}
+          password: ${MSE_MYSQL_PASSWORD:123456}
+        # 独立库租户数据源示例（sys_tenant.ds_key 命中此 key 时路由至此；不需要则删除）
+        tenant2:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://${MSE_MYSQL_HOST:localhost}:${MSE_MYSQL_PORT:3306}/mse_tenant2?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useInformationSchema=true&nullCatalogMeansCurrent=true
+          username: ${MSE_MYSQL_USER:root}
+          password: ${MSE_MYSQL_PASSWORD:123456}
+  data:
+    redis:
+      host: ${MSE_REDIS_HOST:localhost}
+      port: ${MSE_REDIS_PORT:6379}
+      database: ${MSE_REDIS_DB:0}
+
+# ==================== RocketMQ（可选，与单体/微服务形态无关） ====================
+# 单体默认不配置 MQ：租户事件发送自动降级 noop（warn 后丢弃，不阻断启动）。
+# 需要 MQ 时：① pom 放开 mq-starter 依赖；② 下方整段取消注释（或以 MSE_ROCKETMQ_ADDR 注入）——无需换形态。
+#rocketmq:
+#  name-server: ${MSE_ROCKETMQ_ADDR:localhost:9876}
+#  producer:
+#    group: mse-producer
+#    send-message-timeout: 5000
+
+mybatis-plus:
+  global-config:
+    banner: false
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+
+sa-token:
+  token-name: ${MSE_TOKEN_NAME:Authorization}
+  timeout: 2592000          # token 有效期（秒）：30 天
+  active-timeout: -1        # 不做活跃检查
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-log: false
+  is-read-cookie: false
+  is-read-header: true
+
+mse:
+  rpc:
+    mode: local             # 单体：本地直调；切 dubbo 需换用微服务形态（xxx-boot + Nacos）
+  # Actuator 端点鉴权（starter-web 过滤器）：空（默认）= 关闭、/actuator/** 匿名；
+  # 非空后 health/info/metrics/slowsql 一律要求请求头 X-Actuator-Token（生产经环境变量注入
+  # 强随机值；放行健康检查配 mse.actuator.auth.permit-ant-patterns: [/actuator/health*]）
+  actuator:
+    auth:
+      token: ${MSE_ACTUATOR_TOKEN:}
+  # 租户隔离默认开启且零配置：业务表继承 BaseEntity 即自动隔离，无需任何 mse.tenant 配置
+  tenant:
+    schema:
+      # 聚合业务积木的 jar 内 db/tenant 版本化脚本随启动自动应用主库（失败阻断启动；多实例 Redis 锁按目标库互斥）；
+      # 租户独立库经「租户数据源」界面初始化/懒初始化克隆+迁移自动就绪，无需手工执行 SQL
+      auto-migrate: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,slowsql
+
+logging:
+  level:
+    vip.mseapp: debug
+  pattern:
+    # 日志上下文注入 Boot 默认格式：traceId 链路串联、tenant/user 认证后镜像进 MDC、
+    # ds 为语句级数据源路由标注（落主库时显示 -）
+    correlation: "[trace:%X{traceId:-} tenant:%X{tenantId:-} user:%X{userId:-} ds:%X{ds:-}] "
+
+# ==================== 信创数据库切换（可选 profile，默认 MySQL 不受影响） ====================
+# 启动加 --spring.profiles.active=dm 或 kingbase 即切换；基座初始化脚本见基座 docker/dameng|kingbase/init，
+# 业务迁移脚本为各业务 jar 内 db/tenant|base 的 dm/kingbase 方言目录版本（随启动/推送自动应用）。
+---
+spring:
+  config:
+    activate:
+      on-profile: dm
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driver-class-name: dm.jdbc.driver.DmDriver
+          # 达梦单实例多 schema：mse 库对应 MSE schema（驱动/端口默认 5236）
+          url: jdbc:dm://${MSE_DM_HOST:localhost}:${MSE_DM_PORT:5236}?schema=MSE&characterEncoding=UTF-8
+          username: ${MSE_DM_USER:SYSDBA}
+          password: ${MSE_DM_PASSWORD:SYSDBA001}
+        # 独立库租户：MySQL 的 mse_tenant2 库对应达梦 MSE_TENANT2 schema
+        tenant2:
+          driver-class-name: dm.jdbc.driver.DmDriver
+          url: jdbc:dm://${MSE_DM_HOST:localhost}:${MSE_DM_PORT:5236}?schema=MSE_TENANT2&characterEncoding=UTF-8
+          username: ${MSE_DM_USER:SYSDBA}
+          password: ${MSE_DM_PASSWORD:SYSDBA001}
+mse:
+  mybatis:
+    db-type: dm
+
+---
+spring:
+  config:
+    activate:
+      on-profile: kingbase
+  datasource:
+    dynamic:
+      datasource:
+        master:
+          driver-class-name: com.kingbase8.Driver
+          # 金仓：库名 mse + schema mse（默认端口 54321）
+          url: jdbc:kingbase8://${MSE_KB_HOST:localhost}:${MSE_KB_PORT:54321}/${MSE_KB_DB:mse}?currentSchema=mse,public
+          username: ${MSE_KB_USER:system}
+          password: ${MSE_KB_PASSWORD:123456}
+        # 独立库租户：独立 database mse_tenant2
+        tenant2:
+          driver-class-name: com.kingbase8.Driver
+          url: jdbc:kingbase8://${MSE_KB_HOST:localhost}:${MSE_KB_PORT:54321}/${MSE_KB_DB_TENANT2:mse_tenant2}?currentSchema=mse_tenant2,public
+          username: ${MSE_KB_USER:system}
+          password: ${MSE_KB_PASSWORD:123456}
+mse:
+  mybatis:
+    db-type: kingbase_es

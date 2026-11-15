@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ai-mse",
+  "description": "ai-mse 企业系统脚手架官方插件市场（业务开发 ZCode skills）",
+  "owner": { "name": "ai-mse" },
+  "plugins": [
+    {
+      "name": "mse-dev",
+      "version": "1.0.0",
+      "description": "ai-mse 业务开发技能包：按 mse 框架规范创建业务工程（微服务/单体）、生成 CRUD/RPC 契约/SQL/子应用等标准代码并消费基座能力",
+      "source": "./plugins/mse-dev"
+    }
+  ]
+}

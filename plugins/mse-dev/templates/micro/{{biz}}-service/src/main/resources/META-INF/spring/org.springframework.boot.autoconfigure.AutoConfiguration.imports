@@ -1,0 +1,2 @@
+{{package}}.autoconfigure.{{Biz}}ServiceAutoConfiguration
+{{package}}.autoconfigure.{{Biz}}ControllerAutoConfiguration

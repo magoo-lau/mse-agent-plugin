@@ -1,0 +1,12 @@
+{
+  "name": "mse-dev",
+  "version": "1.0.0",
+  "description": "ai-mse business development skills: scaffold biz projects (microservice/monolith) and generate convention-compliant code (CRUD, RPC contract, SQL, sub-app UI) per mse framework conventions",
+  "description_i18n": {
+    "en": "ai-mse business development skills: scaffold biz projects (microservice/monolith) and generate convention-compliant code (CRUD, RPC contract, SQL, sub-app UI) per mse framework conventions",
+    "zh-CN": "ai-mse 业务开发技能包：按 mse 框架规范创建业务工程（微服务/单体）、生成 CRUD/RPC 契约/三方言 SQL/微前端子应用等标准代码并消费基座能力，微服务与单体技能分目录组织"
+  },
+  "author": { "name": "ai-mse" },
+  "license": "MIT",
+  "skills": ["skills/micro", "skills/mono", "skills/shared"]
+}

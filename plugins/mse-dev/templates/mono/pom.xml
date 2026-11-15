@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 独立单体聚合工程：parent 指向基座 mse-starter-parent（编译/插件/BOM/仓库统一收编），
+         聚合业务 = 在 dependencies 追加 <biz>-service jar（SPI 自动装配），无需任何扫描配置 -->
+    <parent>
+        <groupId>vip.mseapp</groupId>
+        <artifactId>mse-starter-parent</artifactId>
+        <version>{{mseVersion}}</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>vip.mseapp</groupId>
+    <artifactId>{{appName}}</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>{{appName}}</name>
+    <description>{{description}}（单体聚合：mse.rpc.mode 默认 local，默认仅依赖 MySQL/Redis；MQ 可选——mq-starter + rocketmq 配置，与形态无关）</description>
+
+    <dependencies>
+        <!-- 单体形态入口启动器：聚合基座三积木 service-system/tenant/auth + starter-web/mybatis/redis/security/rpc
+             全部装配件 + actuator + 三方言 JDBC 驱动；mse.rpc.mode 默认 local，无 Nacos/Dubbo/Seata -->
+        <dependency>
+            <groupId>vip.mseapp</groupId>
+            <artifactId>mono-starter</artifactId>
+        </dependency>
+        <!-- ============ 聚合业务积木：每个 <biz>-service 一条依赖（单体聚合唯一动作） ============
+             前置：业务工程已 mvn install；聚合 oa 用 oa-service 聚合件（含 oa-form + oa-bpm）
+        <dependency>
+            <groupId>vip.mseapp</groupId>
+            <artifactId>{{biz}}-service</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        -->
+        <!-- 按需启用 MQ 装配（业务 service 使用 common-mq 工具类型时）：
+        <dependency>
+            <groupId>vip.mseapp</groupId>
+            <artifactId>mq-starter</artifactId>
+        </dependency>
+        -->
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
