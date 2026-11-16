@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: 清单解析 + 模板渲染冒烟
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JSON 清单解析校验
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('marketplace.json','utf8')); console.log('marketplace.json OK')"
+          node -e "JSON.parse(require('fs').readFileSync('plugins/mse-dev/.zcode-plugin/plugin.json','utf8')); console.log('plugin.json OK')"
+      - name: render.mjs 渲染冒烟（micro/mono/ui 三模板 → 临时目录）
+        run: |
+          cd plugins/mse-dev
+          node scripts/render.mjs templates/micro /tmp/render-micro --biz=demo --port=8090 --perm1=3101 --perm2=3102 --perm3=3103 --perm4=3104 --app-id=4101 --menu1=4100 --menu2=4102 --menu3=4103 --ui-port=3300 --ui-title="演示业务" --description="演示业务"
+          node scripts/render.mjs templates/mono  /tmp/render-mono  --biz=demo --port=8090
+          node scripts/render.mjs templates/ui    /tmp/render-ui    --biz=demo --ui-port=3300 --ui-title="演示中心" --proxy-target=http://localhost:8080 --app-id=4101
+          test -f /tmp/render-micro/pom.xml && test -f /tmp/render-mono/pom.xml && test -f /tmp/render-ui/package.json
+          echo "渲染冒烟 OK"
+      - name: 占位符残留检查（无空格 {{token}} 为占位符；{{ x }} 带空格是合法 Vue 插值）
+        run: |
+          ! grep -rnE "\{\{[a-zA-Z0-9_]+\}\}" /tmp/render-micro /tmp/render-mono /tmp/render-ui
+          echo "无占位符残留 OK"
