@@ -9,7 +9,7 @@ ZCode 插件市场仓（开发者工具区，不参与 Maven/npm 构建）。当
 | 技能 14 个 | `plugins/mse-dev/skills/micro/`（微服务 4：创建工程/网关路由/Nacos 配置/部署物）、`skills/mono/`（单体 2：创建聚合工程/聚合业务积木）、`skills/shared/`（通用 8：规范问答/CRUD/RPC 契约/三方言 SQL/子应用/页面/租户独立库/规范审查） |
 | 规范知识 | `plugins/mse-dev/references/` 6 篇（conventions/micro-checklist/mono-checklist/fs-integration/**alloc-tables**/等）——**alloc-tables.md 是全体系端口/权限号段/子应用注册 id 的唯一登记处** |
 | 模板 | `plugins/mse-dev/templates/{micro,mono,ui}/`——mse-demo / mse-monolith / mse-ui-sub 去业务化精炼版，占位符 `{{biz}}/{{uiPort}}` 等经 `scripts/render.mjs` 渲染 |
-| 渲染脚本 | [../plugins/mse-dev/scripts/render.mjs](../plugins/mse-dev/scripts/render.mjs)：`node render.mjs <srcDir> <dstDir> --biz=... --port=...`（默认目标 mse-modules/mse-<biz>，模板 ui 的 file:../../../mse-ui-shared 在 2 层目标目录解析回仓库上层兄弟仓） |
+| 渲染脚本 | [../plugins/mse-dev/scripts/render.mjs](../plugins/mse-dev/scripts/render.mjs)：`node render.mjs <srcDir> <dstDir> --biz=... --port=...`（默认目标 mse-modules/mse-<biz>；模板 ui 的 mse-ui-shared 为 npm git 依赖 github:magoo-lau/mse-ui-shared#release/1.0.0，模板自带 .npmrc allow-git，渲染后 npm install 即可） |
 
 ## 拆仓说明
 
